@@ -1,0 +1,17 @@
+[site]
+host=ftp.mysite.com
+port=21
+user=mylogin
+pass=mypass
+source=/home/user/projects/mysite.com/www/
+dest=/www/
+
+[exceptions]
+# Do not delete any remote files or dirs CONTAINING the word "uploads"
+uploads=protect
+
+# Ignore local files or dirs whos name matches "offline" EXACTLY
+^offline$=ignore
+
+# Ignore single file with extension
+b1\.jpg=protect 
