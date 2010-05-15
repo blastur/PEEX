@@ -153,7 +153,7 @@ def syncDir(srcOps, srcNode, dstOps, dstNode):
 		for dfile in dstNode.files:
 			if sfile == dfile:				
 				if (sfile.size != dfile.size):
-					log(LOGLEVEL_WARNING, indent + sfile.name.ljust(WIDTH) + "Destination filesize differs (" + sfile.size + "vs" + dfile.size + "). Overwriting!", COLOR_GREEN)
+					log(LOGLEVEL_WARNING, indent + sfile.name.ljust(WIDTH) + "Destination filesize differs (" + str(sfile.size) + " vs " + str(dfile.size) + "). Overwriting!", COLOR_GREEN)
 #				elif (sfile.modtime != dfile.modtime):
 #					log(LOGLEVEL_WARNING, indent + sfile.name.ljust(WIDTH) + "Destination modtime differs (src " + str(sfile.modtime) + " vs dst " + str(dfile.modtime) + "). Overwriting!", COLOR_GREEN)
 				else:
