@@ -1,0 +1,129 @@
+PEEX
+==========
+Python wEbpage EXchanger (PEEX) is a non-interactive FTP client for updating 
+webpages. Peex is an utility designed to automate the task of remotely 
+maintaining a web page or other FTP archives. It will synchronize a set of 
+local files to a remote server by performing uploads and remote deletes as 
+required. Peex is heavily inspired by Weex with the important difference that 
+Peex does not try to cache remote directory structures locally. This makes it
+more cooperative with alien files introduces by 3rd parties. It also enables
+multiple developers to collaborate more efficiently.
+
+Main features:
+ * Synchronizes a local set of files with a remote FTP server.
+ * May be configured to ignore local or remote dirs and files using regular 
+   expressions.
+ * Easy configuration using per-site configuration files.
+ * Testrun your configuration using the dry-run option. In this mode Peex will 
+   only list scheduled operations but not act on them.
+
+Peex is unique in that it can protect 3rd party generated content on your 
+server. A typical scenario is content uploaded by users on your webpage. 
+Using a traditional synchronization tool, these files will be flagged as 
+'obsolete' (since they are not present in your local tree) and incorrectly 
+removed during the synchronziation.
+
+Example: Consider a webpage where users can upload profile images for their
+useraccounts. New content is added to the remote tree which should not be
+removed if a new version of the PHP script is to be synchronized.
+
+Local Tree				Remote Tree
+-----------				-------------
+.						.
+|-- avatars				|-- avatars
+|   `-- user0.png		|   |-- user0.png
+|						|   |-- user1.png		(flagged as obsolete)
+|						|	`-- user2.png		(flagged as obsolete)
+|						|
+`-- uploadscript.php	`-- uploadscript.php
+
+Surprisingly few synchronization tools support this use-case in a good way.
+
+Whats wrong with existing synchronization apps?
+===============================================
+Most apps build up a local cache of the remote file tree as files are initially
+put into place. Files added to the remote tree by 3rd party will be ignored 
+since they are not in the cache. In other words, they only care about content 
+they've put into the remote tree (sane logic).
+
+This is how Weex and several other apps work. While they do support the above
+case, it is not a very robust solution. If the local cache is lost, there is
+no way of separating obsolete local files and content added by 3rd party.
+
+Weex and others fail when:
+- The local cache becomes corrupt for whatever reason. Bad hardware or buggy 
+  software can easily make this reality.
+
+- The local cache is accidentally removed. This happened to me as I migrated
+  to a new machine and neglected to backup ~/.weex/.
+
+- Several developers wish to contribute to the same project. This is quite 
+  common when working with a distributed SCM. You typically do not want to 
+  maintain your local cache in your SCM.
+  
+PEEX tries to work around this by not maintaining a local cache. Instead it
+refreshes the remote tree before each synchronization and relies on a set of
+regular expressions to detect files which should not be flagged as obsolete.
+
+While this becomes considerably slower than a local cache, it provides a more
+reliable solution.
+
+For very large single developer trees or trees where no 3rd party is involved, 
+you should use Weex. 
+  
+How to setup and use PEEX
+=========================
+PEEX is configured partly through commandline switches and partly through 
+config files. The config files contain per-project settings and the command
+line switches are more general options.
+
+Run PEEX without any arguments to show available commandline switches and
+its description.
+
+Once the configuration file is setup, synchronization is started by issuing:
+
+	$ peex.py mysite.peex
+
+It is recommended to set restrictive file permissions on your PEEX configs as
+they contain sensitive account details. E.g. 
+
+	$ chmod u=rw,o=-rw,g=-rw mysite.peex
+
+For a little bit more details on progress, use:
+
+	$ peex.py -v mysite.peex
+
+For colored output use:
+
+	$ peex.py -c -v mysite.peex
+
+where 
+	Green indicates new files being added to destination tree.
+	Red indicates obsolete files in dest (scheduled for removal).
+	Blue indicates local files being ignored.
+	Yellow indicates destination files being protected.
+	Pink indicates current directory in traversal.
+
+Configuration fileformat (one per project):
+-------------------------------------------
+[site]
+host=<ftp_host>
+port=<ftp_port>
+user=<ftp_user>
+pass=<ftp_pass>
+source=<source directory on local disk e.g. /home/user/myfiles/>     
+dest=<destination directory on FTP e.g. /www_files/>
+
+[exceptions]
+<regex_pattern>=[ignore|protect]
+
+The exceptions section lists files which should either be protected on the
+server, or ignored in the local tree.
+
+Example patterns:
+# Ignore local files and dirs containing "offline"
+offline=ignore				
+
+# Do not remove user0.png, user1.png, ..., userX.png even if they are not
+# present in the local tree. This protects content added by 3rd party
+avatars/user(\d+).png=protect	
