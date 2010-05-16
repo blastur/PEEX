@@ -81,7 +81,7 @@ class FTPOps(TreeOps):
 				fname = fname.upper()
 				if (fname == "SIZE"): size = int(fval)
 				elif (fname == "MODIFY"): 
-					modtime = time.mktime(time.strptime(fval, "%Y%m%d%H%M%S"))					
+					modtime = calendar.timegm(time.strptime(fval, "%Y%m%d%H%M%S"))					
 				elif (fname == "TYPE"): 
 					if (fval.upper() == "FILE"):
 						isDir = False
