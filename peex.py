@@ -65,16 +65,19 @@ class Profile:
 		self.config['source'] = cfg.get('site', 'source')
 		self.config['dest'] = cfg.get('site', 'dest')
 
-		ignore = cfg.items('exceptions')
-		for pattern, ptype in ignore:
-			if (ptype == 'protect'):
-				log(LOGLEVEL_DETAILED, "Compiling remote pattern: " + pattern)
-				self.dstmask.append(re.compile(pattern))
-			elif (ptype == 'ignore'):
-				log(LOGLEVEL_DETAILED, "Compiling local pattern: " + pattern)
-				self.srcmask.append(re.compile(pattern))
-			else:
-				log(LOGLEVEL_WARNING,"warning: unknown patterntype '" + ptype + "', ignoring.")
+		try:
+			ignore = cfg.items('exceptions')
+			for pattern, ptype in ignore:
+				if (ptype == 'protect'):
+					log(LOGLEVEL_DETAILED, "Compiling remote pattern: " + pattern)
+					self.dstmask.append(re.compile(pattern))
+				elif (ptype == 'ignore'):
+					log(LOGLEVEL_DETAILED, "Compiling local pattern: " + pattern)
+					self.srcmask.append(re.compile(pattern))
+				else:
+					log(LOGLEVEL_WARNING,"warning: unknown patterntype '" + ptype + "', ignoring.")
+		except ConfigParser.NoSectionError:
+			pass
 
 	def __str__(self):
 		return "-- Config\n" + \
