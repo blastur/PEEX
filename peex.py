@@ -288,6 +288,14 @@ def main():
 	srcRoot = srcOps.list(profile.config['source'])
 	dstRoot = dstOps.list(profile.config['dest'])
 
+	if (srcRoot is None):
+		print "error: source directory '" + profile.config['source'] + "' does not exist."
+		sys.exit(4)
+
+	if (dstRoot is None):
+		print "error: destination directory '" + profile.config['dest'] + "' does not exist."
+		sys.exit(4)
+
 	sync(srcOps, srcRoot, profile.srcmask, dstOps, dstRoot, profile.dstmask)
 	
 def usage(*args):

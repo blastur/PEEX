@@ -102,6 +102,12 @@ class FTPOps(TreeOps):
 				node.addFile(relname, size, modtime)
 								
 	def list(self, rootpath):
+		# Check for rootpath existance on FTP
+		entries = []
+		self.ftp.retrlines("MLSD " + rootpath, entries.append)
+		if len(entries) == 0:
+			return None
+			
 		root = tree.TreeDirectory(None, '', rootpath)
 		self.ls(root, self.ftp)
 		return root		
@@ -148,6 +154,10 @@ class DiskOps(TreeOps):
 				self.dir(subnode)
 
 	def list(self, rootpath):	
+		# Check for rootpath existance on disk
+		if not os.path.isdir(rootpath):
+			return None		
+		
 		root = tree.TreeDirectory(None, '', rootpath)
 		self.dir(root)
 		return root
