@@ -7,10 +7,6 @@ options:
 -d				Dry run (do not modify destination tree)
 -v				Verbosity level (may be used multiple times)
 -c				Enable pretty console colors
-
--u				Update the modification time of destination files instead
-				of source files to achieve sync. This is NOT recommended 
-				as many FTP server implementations are broken.
 """
 
 import ConfigParser
@@ -31,9 +27,6 @@ loglevel = 0
 
 # Use pretty colors in output?
 colors = False
-
-# Update source "modtime" instead of dest 
-srcutime = True
 
 COLOR_PINK = '\033[95m'
 COLOR_BLUE = '\033[94m'
@@ -62,6 +55,7 @@ class Profile:
 		self.config['user'] = cfg.get('site', 'user')
 		self.config['pass'] = cfg.get('site', 'pass')
 		self.config['port'] = cfg.getint('site', 'port')
+		self.config['srcutime'] = cfg.getboolean('site', 'srcutime')
 		self.config['source'] = cfg.get('site', 'source')
 		self.config['dest'] = cfg.get('site', 'dest')
 
@@ -86,6 +80,7 @@ class Profile:
 			   "Pass: " + self.config['pass'] + "\n" \
 			   "Port: " + str(self.config['port']) + "\n" \
 			   "\n" + \
+			   "Update source modtime: " + str(self.config['srcutime']) + "\n" \
 			   "Source directory: " + self.config['source'] + "\n" \
 			   "Destination directory: " + self.config['dest'] + "\n" \
 
@@ -143,7 +138,7 @@ def getModtime(ops, node):
 	else:
 		return ops.modtime(node.abspath)	
 
-def syncDir(srcOps, srcNode, dstOps, dstNode):
+def syncDir(srcOps, srcNode, dstOps, dstNode, srcutime):
 	indent = " " * WIDTH * (srcNode.level)
 
 	# Put new/changed files
@@ -222,10 +217,10 @@ def syncDir(srcOps, srcNode, dstOps, dstNode):
 		log(LOGLEVEL_WARNING, indent + sdir.relpath.ljust(WIDTH) + "----->", COLOR_PINK)
 		syncDir(srcOps, sdir, dstOps, ddir)	
 
-def sync(srcOps, srcNode, srcMask, dstOps, dstNode, dstMask):
+def sync(srcOps, srcNode, srcMask, dstOps, dstNode, dstMask, srcutime):
 	flagIgnored(srcNode, srcMask)
 	flagIgnored(dstNode, dstMask)
-	syncDir(srcOps, srcNode, dstOps, dstNode)
+	syncDir(srcOps, srcNode, dstOps, dstNode, srcutime)
 
 def ignoredFile(afile, mask):
 	for pattern in mask:
@@ -253,10 +248,9 @@ def main():
 	global loglevel
 	global dryrun
 	global colors
-	global srcutime
 	
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'dvcu')
+		opts, args = getopt.getopt(sys.argv[1:], 'dvc')
 	except getopt.error, msg:
 		usage(msg)
 
@@ -264,7 +258,6 @@ def main():
 		if o == '-d': dryrun = True
 		if o == '-v': loglevel = loglevel + 1
 		if o == '-c': colors = True
-		if o == '-u': srcutime = False
 		
 	if not args: 
 		usage('error: no config specified')
@@ -296,7 +289,7 @@ def main():
 		print "error: destination directory '" + profile.config['dest'] + "' does not exist."
 		sys.exit(4)
 
-	sync(srcOps, srcRoot, profile.srcmask, dstOps, dstRoot, profile.dstmask)
+	sync(srcOps, srcRoot, profile.srcmask, dstOps, dstRoot, profile.dstmask, profile.config['srcutime'])
 	
 def usage(*args):
 	sys.stdout = sys.stderr
