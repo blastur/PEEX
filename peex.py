@@ -242,8 +242,8 @@ def syncDir(srcOps, srcNode, dstOps, dstNode, srcutime):
 		syncDir(srcOps, sdir, dstOps, ddir, srcutime)	
 
 def sync(srcOps, srcNode, srcMask, dstOps, dstNode, dstMask, srcutime):
-	flagIgnored(srcNode, srcMask)
-	flagIgnored(dstNode, dstMask)
+	flagIgnored(srcNode, srcMask, False)
+	flagIgnored(dstNode, dstMask, True)
 	syncDir(srcOps, srcNode, dstOps, dstNode, srcutime)
 
 def ignoredFile(afile, mask):
@@ -252,14 +252,17 @@ def ignoredFile(afile, mask):
 			return True			
 	return False
 
-def flagIgnored(node, mask):
+def flagIgnored(node, mask, tagParent):
 	for sub in node.subdirs:
-		flagIgnored(sub, mask)
+		flagIgnored(sub, mask, tagParent)
 
 	for afile in node.files:
 		if ignoredFile(afile, mask):
 			afile.ignored = True
 
+			if not tagParent:
+				continue
+				
 			# Flag container dir and its parents as ignored
 			dir = afile.dir
 			while True:
