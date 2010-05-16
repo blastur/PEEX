@@ -28,6 +28,14 @@ loglevel = 0
 # Use pretty colors in output?
 colors = False
 
+# Stats
+num_rmfile = 0
+num_rmdir = 0
+num_putfile = 0
+num_mkdir = 0
+num_protected = 0
+num_ignored = 0
+
 COLOR_PINK = '\033[95m'
 COLOR_BLUE = '\033[94m'
 COLOR_GREEN = '\033[92m'
@@ -94,9 +102,13 @@ def log(level, msg, color = None):
 			print msg
 
 def rmfile(ops, node):
+	global num_rmfile
+	num_rmfile = num_rmfile + 1
 	if not dryrun: ops.rmfile(node.abspath)
 	
 def rmdir(ops, node):	
+	global num_protected
+
 	indent = " " * WIDTH * (node.level)
 
 	# remove subdirs (unless protected)
@@ -110,21 +122,28 @@ def rmdir(ops, node):
 			log(LOGLEVEL_WARNING, indent + f.name.ljust(WIDTH) + "Removing obsolete file", COLOR_RED)
 			rmfile(ops, f)		
 		else:
+			num_protected = num_protected + 1
 			log(LOGLEVEL_WARNING, indent + f.name.ljust(WIDTH) + "Protecting obsolete file", COLOR_YELLOW)
 
 	
 	# remove self
 	if not node.ignored:
+		num_rmdir = num_rmdir + 1
 		log(LOGLEVEL_WARNING, indent + node.name.ljust(WIDTH) + "Removing obsolete file", COLOR_RED)	
 		if not dryrun:
 			ops.rmdir(node.abspath)
 	else:
+		num_protected = num_protected + 1
 		log(LOGLEVEL_WARNING, indent + node.name.ljust(WIDTH) + "Protecting obsolete file", COLOR_YELLOW)
 	
 def mkdir(ops, node):
+	global num_mkdir
+	num_mkdir = num_mkdir + 1
 	if not dryrun: ops.mkdir(node.abspath)
 	
 def putfile(ops, srcNode, dstNode):
+	global num_putfile
+	num_putfile = num_putfile + 1
 	if not dryrun: 
 		ops.putfile(srcNode.abspath, dstNode.abspath)
 
@@ -139,12 +158,14 @@ def getModtime(ops, node):
 		return ops.modtime(node.abspath)	
 
 def syncDir(srcOps, srcNode, dstOps, dstNode, srcutime):
+	global num_ignored
 	indent = " " * WIDTH * (srcNode.level)
 
 	# Put new/changed files
 	for sfile in srcNode.files:
 		if sfile.ignored:
 			log(LOGLEVEL_DETAILED, indent + sfile.relpath.ljust(WIDTH) + "Ignoring file", COLOR_BLUE)
+			num_ignored = num_ignored + 1
 			continue
 
 		doUpload = True
@@ -183,6 +204,7 @@ def syncDir(srcOps, srcNode, dstOps, dstNode, srcutime):
 				log(LOGLEVEL_WARNING, indent + dfile.name.ljust(WIDTH) + "Removing obsolete file", COLOR_RED)
 				rmfile(dstOps, dfile)
 			else:
+				num_protected = num_protected + 1
 				log(LOGLEVEL_WARNING, indent + dfile.name.ljust(WIDTH) + "Protecting obsolete file", COLOR_YELLOW)
 
 	# Remove obsolete subdirs
@@ -192,11 +214,13 @@ def syncDir(srcOps, srcNode, dstOps, dstNode, srcutime):
 				log(LOGLEVEL_WARNING, indent + ddir.relpath.ljust(WIDTH) + "Removing dir", COLOR_RED)
 				rmdir(dstOps, ddir)
 			else:
+				num_protected = num_protected + 1
 				log(LOGLEVEL_WARNING, indent + ddir.relpath.ljust(WIDTH) + "Protecting obsolete dir", COLOR_YELLOW)
 
 	# Create new subdirs
 	for sdir in srcNode.subdirs:
 		if sdir.ignored:
+			num_ignored = num_ignored + 1
 			log(LOGLEVEL_DETAILED, indent + sdir.relpath.ljust(WIDTH) + "Ignoring source dir", COLOR_BLUE)
 			continue
 		
@@ -215,7 +239,7 @@ def syncDir(srcOps, srcNode, dstOps, dstNode, srcutime):
 					break;
 			
 		log(LOGLEVEL_WARNING, indent + sdir.relpath.ljust(WIDTH) + "----->", COLOR_PINK)
-		syncDir(srcOps, sdir, dstOps, ddir)	
+		syncDir(srcOps, sdir, dstOps, ddir, srcutime)	
 
 def sync(srcOps, srcNode, srcMask, dstOps, dstNode, dstMask, srcutime):
 	flagIgnored(srcNode, srcMask)
@@ -290,6 +314,14 @@ def main():
 		sys.exit(4)
 
 	sync(srcOps, srcRoot, profile.srcmask, dstOps, dstRoot, profile.dstmask, profile.config['srcutime'])
+
+	log(LOGLEVEL_FATAL, "Synchronization complete. Destination statistics:")
+	log(LOGLEVEL_FATAL, "  " + str(num_putfile) + " files created", COLOR_GREEN)
+	log(LOGLEVEL_FATAL, "  " + str(num_mkdir) + " directories created", COLOR_GREEN)
+	log(LOGLEVEL_FATAL, "  " + str(num_rmfile) + " files removed", COLOR_RED)
+	log(LOGLEVEL_FATAL, "  " + str(num_rmdir) + " directories removed", COLOR_RED)
+	log(LOGLEVEL_FATAL, "  " + str(num_protected) + " entries protected", COLOR_YELLOW)
+	log(LOGLEVEL_FATAL, "  " + str(num_ignored) + " local entries ignored", COLOR_BLUE)
 	
 def usage(*args):
 	sys.stdout = sys.stderr
