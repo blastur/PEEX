@@ -1,5 +1,4 @@
 - Implement support to sync file permissions
-- Stats (# of rmfile, rmdir, putfile, mkdir etc)
 - Fix config file format; atm regex patterns are ruined by RawConfigParser
 - Truncate paths for directories (fancy output)
 - Add individual patterns for dirs and files
