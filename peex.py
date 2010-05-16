@@ -248,7 +248,7 @@ def sync(srcOps, srcNode, srcMask, dstOps, dstNode, dstMask, srcutime):
 
 def ignoredFile(afile, mask):
 	for pattern in mask:
-		if pattern.match(afile.relpath):
+		if pattern.search(afile.relpath):
 			return True			
 	return False
 
