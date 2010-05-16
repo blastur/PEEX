@@ -88,6 +88,10 @@ class FTPOps(TreeOps):
 					else:
 						isDir = True
 
+			if isDir is None:
+				print "warning: failed to determine entry type in directory listing '" + factstr + "'"
+				continue
+
 			if (isDir):
 				subnode = node.addSubdir(relname)
 				self.ls(subnode, ftp)                                 
