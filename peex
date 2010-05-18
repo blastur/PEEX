@@ -56,6 +56,8 @@ class Profile:
 
 	def __init__(self, filename):
 		cfg = ConfigParser.RawConfigParser()
+		cfg.optionxform = str
+		
 		if (len(cfg.read('defaults.peex')) == 0):
 			raise IOError
 		
