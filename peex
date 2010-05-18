@@ -56,9 +56,12 @@ class Profile:
 
 	def __init__(self, filename):
 		cfg = ConfigParser.RawConfigParser()
+		if (len(cfg.read('defaults.peex')) == 0):
+			raise IOError
+		
 		if (len(cfg.read(filename)) == 0):
 			raise IOError
-	
+		
 		self.config['host'] = cfg.get('site', 'host')
 		self.config['user'] = cfg.get('site', 'user')
 		self.config['pass'] = cfg.get('site', 'pass')
