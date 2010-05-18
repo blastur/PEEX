@@ -27,40 +27,39 @@ Example: Consider a webpage where users can upload profile images for their
 useraccounts. New content is added to the remote tree which should not be
 removed if a new version of the PHP script is to be synchronized.
 
-Local Tree				Remote Tree
------------				-------------
-.						.
-|-- avatars				|-- avatars
-|   `-- user0.png		|   |-- user0.png
-|						|   |-- user1.png		(flagged as obsolete)
-|						|	`-- user2.png		(flagged as obsolete)
-|						|
-`-- uploadscript.php	`-- uploadscript.php
-
-Surprisingly few synchronization tools support this use-case in a good way.
+Local Tree              Remote Tree
+-----------             -------------
+.                       .
+|-- avatars             |-- avatars
+|   `-- user0.png       |   |-- user0.png
+|                       |   |-- user1.png    (flagged as obsolete)
+|                       |	`-- user2.png    (flagged as obsolete)
+|                       |
+`-- uploadscript.php    `-- uploadscript.php
 
 Whats wrong with existing synchronization apps?
 ===============================================
 Most apps build up a local cache of the remote file tree as files are initially
 put into place. Files added to the remote tree by 3rd party will be ignored 
 since they are not in the cache. In other words, they only care about content 
-they've put into the remote tree (sane logic).
+they've put into the remote tree.
 
 This is how Weex and several other apps work. While they do support the above
 case, it is not a very robust solution. If the local cache is lost, there is
-no way of separating obsolete local files and content added by 3rd party.
+no way to differentiate between obsolete local files and content added by 3rd 
+party.
 
-Weex and others fail when:
+Weex fail when:
+- Several developers wish to contribute to the same project. Using Weex, you
+  would have to synchronize your cache between all developers. Typically you
+  do not want to maintain local caches in your SCM repository.
+  
 - The local cache becomes corrupt for whatever reason. Bad hardware or buggy 
   software can easily make this reality.
 
 - The local cache is accidentally removed. This happened to me as I migrated
   to a new machine and neglected to backup ~/.weex/.
 
-- Several developers wish to contribute to the same project. This is quite 
-  common when working with a distributed SCM. You typically do not want to 
-  maintain your local cache in your SCM.
-  
 PEEX tries to work around this by not maintaining a local cache. Instead it
 refreshes the remote tree before each synchronization and relies on a set of
 regular expressions to detect files which should not be flagged as obsolete.
@@ -75,10 +74,10 @@ How to setup and use PEEX
 =========================
 PEEX is configured partly through commandline switches and partly through 
 config files. The config files contain per-project settings and the command
-line switches are more general options.
+line switches controls more general options.
 
-Run PEEX without any arguments to show available commandline switches and
-its description.
+Run PEEX without any arguments to show available commandline switches and its 
+descriptions.
 
 Once the configuration file is setup, synchronization is started by issuing:
 
