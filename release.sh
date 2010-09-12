@@ -19,7 +19,7 @@ fi
 echo "Building release '$NAME'"
 rm -rf $NAME
 mkdir -p $NAME
-cp peex defaults.peex ops.py tree.py $NAME/
+cp peex ops.py tree.py $NAME/
 cp README example.peex $NAME/
 tar -cf $NAME/$NAME.tar $NAME/
 gzip $NAME/$NAME.tar
