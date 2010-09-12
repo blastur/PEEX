@@ -17,59 +17,8 @@ Main features:
  * Testrun your configuration using the dry-run option. In this mode Peex will 
    only list scheduled operations but not act on them.
 
-Peex is unique in that it can protect 3rd party generated content on your 
-server. A typical scenario is content uploaded by users on your webpage. 
-Using a traditional synchronization tool, these files will be flagged as 
-'obsolete' (since they are not present in your local tree) and incorrectly 
-removed during the synchronziation.
+For more details, visit http://mag32.net/
 
-Example: Consider a webpage where users can upload profile images for their
-useraccounts. New content is added to the remote tree which should not be
-removed if a new version of the PHP script is to be synchronized.
-
-Local Tree              Remote Tree
------------             -------------
-.                       .
-|-- avatars             |-- avatars
-|   `-- user0.png       |   |-- user0.png
-|                       |   |-- user1.png    (flagged as obsolete)
-|                       |	`-- user2.png    (flagged as obsolete)
-|                       |
-`-- uploadscript.php    `-- uploadscript.php
-
-Whats wrong with existing synchronization apps?
-===============================================
-Most apps build up a local cache of the remote file tree as files are initially
-put into place. Files added to the remote tree by 3rd party will be ignored 
-since they are not in the cache. In other words, they only care about content 
-they've put into the remote tree.
-
-This is how Weex and several other apps work. While they do support the above
-case, it is not a very robust solution. If the local cache is lost, there is
-no way to differentiate between obsolete local files and content added by 3rd 
-party.
-
-Weex fail when:
-- Several developers wish to contribute to the same project. Using Weex, you
-  would have to synchronize your cache between all developers. Typically you
-  do not want to maintain local caches in your SCM repository.
-  
-- The local cache becomes corrupt for whatever reason. Bad hardware or buggy 
-  software can easily make this reality.
-
-- The local cache is accidentally removed. This happened to me as I migrated
-  to a new machine and neglected to backup ~/.weex/.
-
-PEEX tries to work around this by not maintaining a local cache. Instead it
-refreshes the remote tree before each synchronization and relies on a set of
-regular expressions to detect files which should not be flagged as obsolete.
-
-While this becomes considerably slower than a local cache, it provides a more
-reliable solution.
-
-For very large single developer trees or trees where no 3rd party is involved, 
-you should use Weex. 
-  
 How to setup and use PEEX
 =========================
 PEEX is configured partly through commandline switches and partly through 

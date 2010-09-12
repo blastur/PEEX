@@ -1,9 +1,0 @@
-[site]
-host=localhost
-port=21
-user=anonymous
-pass=anonymous@anonymous.com
-source=
-dest=
-srcutime=true
-

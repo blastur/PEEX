@@ -55,13 +55,21 @@ class Profile:
 	dstmask = []
 
 	def __init__(self, filename):
+		
 		cfg = ConfigParser.RawConfigParser()
 		cfg.optionxform = str
-		
-		if (len(cfg.read('defaults.peex')) == 0):
-			raise IOError
+
+		cfg.add_section('site')
+		cfg.set('site', 'host', 'localhost')
+		cfg.set('site', 'user', 'anonymous')
+		cfg.set('site', 'pass', 'anonymous@anonymous.com')
+		cfg.set('site', 'port', 21)
+		cfg.set('site', 'srcutime', 'False')
+		cfg.set('site', 'source', '')
+		cfg.set('site', 'dest', '')
 		
 		if (len(cfg.read(filename)) == 0):
+			log(LOGLEVEL_WARNING, 'Unable to read config')		
 			raise IOError
 		
 		self.config['host'] = cfg.get('site', 'host')
@@ -113,7 +121,8 @@ def rmfile(ops, node):
 	
 def rmdir(ops, node):	
 	global num_protected
-
+	global num_rmdir
+	
 	indent = " " * WIDTH * (node.level)
 
 	# remove subdirs (unless protected)
@@ -164,6 +173,7 @@ def getModtime(ops, node):
 
 def syncDir(srcOps, srcNode, dstOps, dstNode, srcutime):
 	global num_ignored
+	global num_protected
 	indent = " " * WIDTH * (srcNode.level)
 
 	# Put new/changed files
