@@ -10,7 +10,7 @@ class TreeFile:
         self.dir = directory
         self.name = name
         self.size = size
-        self.modtime = modtime
+        self.modtime = int(modtime)
         self.ignored = False
         self.relpath = os.path.join(self.dir.relpath, self.name)
         self.abspath = os.path.join(self.dir.abspath, self.name)
