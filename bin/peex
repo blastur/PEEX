@@ -48,303 +48,348 @@ LOGLEVEL_DETAILED = 2
 
 WIDTH = 25
 
+
 class Profile:
-	config = { }
-	srcmask = []
-	dstmask = []
+    config = {}
+    srcmask = []
+    dstmask = []
 
-	def __init__(self, filename):
-		
-		cfg = ConfigParser.RawConfigParser()
-		cfg.optionxform = str
+    def __init__(self, filename):
 
-		cfg.add_section('site')
-		cfg.set('site', 'host', 'localhost')
-		cfg.set('site', 'user', 'anonymous')
-		cfg.set('site', 'pass', 'anonymous@anonymous.com')
-		cfg.set('site', 'port', 21)
-		cfg.set('site', 'srcutime', 'False')
-		cfg.set('site', 'source', '')
-		cfg.set('site', 'dest', '')
-		
-		if (len(cfg.read(filename)) == 0):
-			log(LOGLEVEL_WARNING, 'Unable to read config')		
-			raise IOError
-		
-		self.config['host'] = cfg.get('site', 'host')
-		self.config['user'] = cfg.get('site', 'user')
-		self.config['pass'] = cfg.get('site', 'pass')
-		self.config['port'] = cfg.getint('site', 'port')
-		self.config['srcutime'] = cfg.getboolean('site', 'srcutime')
-		self.config['source'] = cfg.get('site', 'source')
-		self.config['dest'] = cfg.get('site', 'dest')
+        cfg = ConfigParser.RawConfigParser()
+        cfg.optionxform = str
 
-		try:
-			ignore = cfg.items('exceptions')
-			for pattern, ptype in ignore:
-				if (ptype == 'protect'):
-					log(LOGLEVEL_DETAILED, "Compiling remote pattern: " + pattern)
-					self.dstmask.append(re.compile(pattern))
-				elif (ptype == 'ignore'):
-					log(LOGLEVEL_DETAILED, "Compiling local pattern: " + pattern)
-					self.srcmask.append(re.compile(pattern))
-				else:
-					log(LOGLEVEL_WARNING,"warning: unknown patterntype '" + ptype + "', ignoring.")
-		except ConfigParser.NoSectionError:
-			pass
+        cfg.add_section('site')
+        cfg.set('site', 'host', 'localhost')
+        cfg.set('site', 'user', 'anonymous')
+        cfg.set('site', 'pass', 'anonymous@anonymous.com')
+        cfg.set('site', 'port', 21)
+        cfg.set('site', 'srcutime', 'False')
+        cfg.set('site', 'source', '')
+        cfg.set('site', 'dest', '')
 
-	def __str__(self):
-		return "-- Config\n" + \
-			   "Host: " + self.config['host'] + "\n" \
-			   "User: " + self.config['user'] + "\n" \
-			   "Pass: " + self.config['pass'] + "\n" \
-			   "Port: " + str(self.config['port']) + "\n" \
-			   "\n" + \
-			   "Update source modtime: " + str(self.config['srcutime']) + "\n" \
-			   "Source directory: " + self.config['source'] + "\n" \
-			   "Destination directory: " + self.config['dest'] + "\n" \
+        if (len(cfg.read(filename)) == 0):
+            log(LOGLEVEL_WARNING, 'Unable to read config')
+            raise IOError
 
-def log(level, msg, color = None):
-	global loglevel
-	
-	if (level <= loglevel): 
-		if (color is not None and colors):
-			print color + msg + COLOR_END
-		else:
-			print msg
+        self.config['host'] = cfg.get('site', 'host')
+        self.config['user'] = cfg.get('site', 'user')
+        self.config['pass'] = cfg.get('site', 'pass')
+        self.config['port'] = cfg.getint('site', 'port')
+        self.config['srcutime'] = cfg.getboolean('site', 'srcutime')
+        self.config['source'] = cfg.get('site', 'source')
+        self.config['dest'] = cfg.get('site', 'dest')
+
+        try:
+            ignore = cfg.items('exceptions')
+            for pattern, ptype in ignore:
+                if (ptype == 'protect'):
+                    log(LOGLEVEL_DETAILED, "Compiling remote pattern: " + pattern)
+                    self.dstmask.append(re.compile(pattern))
+                elif (ptype == 'ignore'):
+                    log(LOGLEVEL_DETAILED, "Compiling local pattern: " + pattern)
+                    self.srcmask.append(re.compile(pattern))
+                else:
+                    log(LOGLEVEL_WARNING, "warning: unknown patterntype '" +
+                        ptype + "', ignoring.")
+        except ConfigParser.NoSectionError:
+            pass
+
+    def __str__(self):
+        return "-- Config\n" + \
+            "Host: " + self.config['host'] + "\n" \
+            "User: " + self.config['user'] + "\n" \
+            "Pass: " + self.config['pass'] + "\n" \
+            "Port: " + str(self.config['port']) + "\n" \
+            "\n" + \
+            "Update source modtime: " + str(self.config['srcutime']) + "\n" \
+            "Source directory: " + self.config['source'] + "\n" \
+            "Destination directory: " + self.config['dest'] + "\n" \
+
+
+
+def log(level, msg, color=None):
+    global loglevel
+
+    if (level <= loglevel):
+        if (color is not None and colors):
+            print color + msg + COLOR_END
+        else:
+            print msg
+
 
 def rmfile(ops, node):
-	global num_rmfile
-	num_rmfile = num_rmfile + 1
-	if not dryrun: ops.rmfile(node.abspath)
-	
-def rmdir(ops, node):	
-	global num_protected
-	global num_rmdir
-	
-	indent = " " * WIDTH * (node.level)
+    global num_rmfile
+    num_rmfile = num_rmfile + 1
+    if not dryrun:
+        ops.rmfile(node.abspath)
 
-	# remove subdirs (unless protected)
-	for d in node.subdirs:
-		log(LOGLEVEL_WARNING, indent + d.name.ljust(WIDTH) + "----->", COLOR_PINK)
-		rmdir(ops, d)
-			
-	# remove files
-	for f in node.files:
-		if not f.ignored:
-			log(LOGLEVEL_WARNING, indent + f.name.ljust(WIDTH) + "Removing obsolete file", COLOR_RED)
-			rmfile(ops, f)		
-		else:
-			num_protected = num_protected + 1
-			log(LOGLEVEL_WARNING, indent + f.name.ljust(WIDTH) + "Protecting obsolete file", COLOR_YELLOW)
 
-	
-	# remove self
-	if not node.ignored:
-		num_rmdir = num_rmdir + 1
-		log(LOGLEVEL_WARNING, indent + node.name.ljust(WIDTH) + "Removing obsolete file", COLOR_RED)	
-		if not dryrun:
-			ops.rmdir(node.abspath)
-	else:
-		num_protected = num_protected + 1
-		log(LOGLEVEL_WARNING, indent + node.name.ljust(WIDTH) + "Protecting obsolete file", COLOR_YELLOW)
-	
+def rmdir(ops, node):
+    global num_protected
+    global num_rmdir
+
+    indent = " " * WIDTH * (node.level)
+
+    # remove subdirs (unless protected)
+    for d in node.subdirs:
+        log(LOGLEVEL_WARNING, indent + d.name.ljust(WIDTH) + "----->", COLOR_PINK)
+        rmdir(ops, d)
+
+    # remove files
+    for f in node.files:
+        if not f.ignored:
+            log(LOGLEVEL_WARNING, indent + f.name.ljust(WIDTH) +
+                "Removing obsolete file", COLOR_RED)
+            rmfile(ops, f)
+        else:
+            num_protected = num_protected + 1
+            log(LOGLEVEL_WARNING, indent + f.name.ljust(WIDTH) +
+                "Protecting obsolete file", COLOR_YELLOW)
+
+    # remove self
+    if not node.ignored:
+        num_rmdir = num_rmdir + 1
+        log(LOGLEVEL_WARNING, indent + node.name.ljust(WIDTH) +
+            "Removing obsolete file", COLOR_RED)
+        if not dryrun:
+            ops.rmdir(node.abspath)
+    else:
+        num_protected = num_protected + 1
+        log(LOGLEVEL_WARNING, indent + node.name.ljust(WIDTH) +
+            "Protecting obsolete file", COLOR_YELLOW)
+
+
 def mkdir(ops, node):
-	global num_mkdir
-	num_mkdir = num_mkdir + 1
-	if not dryrun: ops.mkdir(node.abspath)
-	
+    global num_mkdir
+    num_mkdir = num_mkdir + 1
+    if not dryrun:
+        ops.mkdir(node.abspath)
+
+
 def putfile(ops, srcNode, dstNode):
-	global num_putfile
-	num_putfile = num_putfile + 1
-	if not dryrun: 
-		ops.putfile(srcNode.abspath, dstNode.abspath)
+    global num_putfile
+    num_putfile = num_putfile + 1
+    if not dryrun:
+        ops.putfile(srcNode.abspath, dstNode.abspath)
+
 
 def setModtime(ops, node):
-	if not dryrun:
-		ops.utime(node.abspath, node.modtime)
+    if not dryrun:
+        ops.utime(node.abspath, node.modtime)
+
 
 def getModtime(ops, node):
-	if dryrun:
-		return 0
-	else:
-		return ops.modtime(node.abspath)	
+    if dryrun:
+        return 0
+    else:
+        return ops.modtime(node.abspath)
+
 
 def syncDir(srcOps, srcNode, dstOps, dstNode, srcutime):
-	global num_ignored
-	global num_protected
-	indent = " " * WIDTH * (srcNode.level)
+    global num_ignored
+    global num_protected
+    indent = " " * WIDTH * (srcNode.level)
 
-	# Put new/changed files
-	for sfile in srcNode.files:
-		if sfile.ignored:
-			log(LOGLEVEL_DETAILED, indent + sfile.relpath.ljust(WIDTH) + "Ignoring file", COLOR_BLUE)
-			num_ignored = num_ignored + 1
-			continue
+    # Put new/changed files
+    for sfile in srcNode.files:
+        if sfile.ignored:
+            log(LOGLEVEL_DETAILED, indent +
+                sfile.relpath.ljust(WIDTH) + "Ignoring file", COLOR_BLUE)
+            num_ignored = num_ignored + 1
+            continue
 
-		doUpload = True
-		for dfile in dstNode.files:
-			if sfile == dfile:				
-				if (sfile.size != dfile.size):
-					log(LOGLEVEL_WARNING, indent + sfile.name.ljust(WIDTH) + "Destination filesize differs (" + str(sfile.size) + " vs " + str(dfile.size) + "). Overwriting!", COLOR_GREEN)
-				elif (sfile.modtime != dfile.modtime):
-					log(LOGLEVEL_WARNING, indent + sfile.name.ljust(WIDTH) + "Destination modtime differs (src " + str(sfile.modtime) + " vs dst " + str(dfile.modtime) + "). Overwriting!", COLOR_GREEN)
-				else:
-					log(LOGLEVEL_DETAILED, indent + sfile.name.ljust(WIDTH) + "Destination file is already up-to-date", COLOR_BLUE)
-					doUpload = False
-				break
+        doUpload = True
+        for dfile in dstNode.files:
+            if sfile == dfile:
+                if (sfile.size != dfile.size):
+                    log(LOGLEVEL_WARNING, indent + sfile.name.ljust(WIDTH) + "Destination filesize differs (" +
+                        str(sfile.size) + " vs " + str(dfile.size) + "). Overwriting!", COLOR_GREEN)
+                elif (sfile.modtime != dfile.modtime):
+                    log(LOGLEVEL_WARNING, indent + sfile.name.ljust(WIDTH) + "Destination modtime differs (src " +
+                        str(sfile.modtime) + " vs dst " + str(dfile.modtime) + "). Overwriting!", COLOR_GREEN)
+                else:
+                    log(LOGLEVEL_DETAILED, indent + sfile.name.ljust(WIDTH) +
+                        "Destination file is already up-to-date", COLOR_BLUE)
+                    doUpload = False
+                break
 
-		if doUpload:
-			dfile = dstNode.addFile(sfile.name, sfile.size, sfile.modtime)
-			log(LOGLEVEL_WARNING, indent + sfile.name.ljust(WIDTH) + "Creating new file", COLOR_GREEN)
-			putfile(dstOps, sfile, dfile)
-			
-			if srcutime:
-				# Less correct, more portable
-				sfile.modtime = getModtime(dstOps, dfile)
-				log(LOGLEVEL_DETAILED, indent + sfile.name.ljust(WIDTH) + "Setting source modtime to " + str(sfile.modtime), COLOR_BLUE)
-				setModtime(srcOps, sfile)
-			else:
-				# More correct, less portable
-				dfile.modtime = sfile.modtime
-				log(LOGLEVEL_DETAILED, indent + dfile.name.ljust(WIDTH) + "Setting destination modtime to " + str(dfile.modtime), COLOR_BLUE)
-				setModtime(dstOps, dfile)
-				
+        if doUpload:
+            dfile = dstNode.addFile(sfile.name, sfile.size, sfile.modtime)
+            log(LOGLEVEL_WARNING, indent + sfile.name.ljust(WIDTH) +
+                "Creating new file", COLOR_GREEN)
+            putfile(dstOps, sfile, dfile)
 
-	# Remove obsolete files
-	for dfile in dstNode.files:
-		if not dfile in srcNode.files:
-			if not dfile.ignored:
-				log(LOGLEVEL_WARNING, indent + dfile.name.ljust(WIDTH) + "Removing obsolete file", COLOR_RED)
-				rmfile(dstOps, dfile)
-			else:
-				num_protected = num_protected + 1
-				log(LOGLEVEL_WARNING, indent + dfile.name.ljust(WIDTH) + "Protecting obsolete file", COLOR_YELLOW)
+            if srcutime:
+                # Less correct, more portable
+                sfile.modtime = getModtime(dstOps, dfile)
+                log(LOGLEVEL_DETAILED, indent + sfile.name.ljust(WIDTH) +
+                    "Setting source modtime to " + str(sfile.modtime), COLOR_BLUE)
+                setModtime(srcOps, sfile)
+            else:
+                # More correct, less portable
+                dfile.modtime = sfile.modtime
+                log(LOGLEVEL_DETAILED, indent + dfile.name.ljust(WIDTH) +
+                    "Setting destination modtime to " + str(dfile.modtime), COLOR_BLUE)
+                setModtime(dstOps, dfile)
 
-	# Remove obsolete subdirs
-	for ddir in dstNode.subdirs:
-		if not ddir in srcNode.subdirs:
-			if not ddir.ignored:
-				log(LOGLEVEL_WARNING, indent + ddir.relpath.ljust(WIDTH) + "Removing dir", COLOR_RED)
-				rmdir(dstOps, ddir)
-			else:
-				num_protected = num_protected + 1
-				log(LOGLEVEL_WARNING, indent + ddir.relpath.ljust(WIDTH) + "Protecting obsolete dir", COLOR_YELLOW)
+    # Remove obsolete files
+    for dfile in dstNode.files:
+        if not dfile in srcNode.files:
+            if not dfile.ignored:
+                log(LOGLEVEL_WARNING, indent + dfile.name.ljust(WIDTH) +
+                    "Removing obsolete file", COLOR_RED)
+                rmfile(dstOps, dfile)
+            else:
+                num_protected = num_protected + 1
+                log(LOGLEVEL_WARNING, indent + dfile.name.ljust(WIDTH) +
+                    "Protecting obsolete file", COLOR_YELLOW)
 
-	# Create new subdirs
-	for sdir in srcNode.subdirs:
-		if sdir.ignored:
-			num_ignored = num_ignored + 1
-			log(LOGLEVEL_DETAILED, indent + sdir.relpath.ljust(WIDTH) + "Ignoring source dir", COLOR_BLUE)
-			continue
-		
-		ddir = None
-		if not sdir in dstNode.subdirs:
-			# Dir is not present in dest tree, create and sync
-			log(LOGLEVEL_WARNING, indent + sdir.relpath.ljust(WIDTH) + "Creating missing subdir", COLOR_GREEN)
-			ddir = dstNode.addSubdir(sdir.name)
-			mkdir(dstOps, ddir)			
-		else:
-			# Even if its present, we still gotta sync it
-			log(LOGLEVEL_DETAILED, indent + sdir.relpath.ljust(WIDTH) + "Already exists, no need to create", COLOR_BLUE)
-			for adir in dstNode.subdirs:
-				if (sdir == adir):
-					ddir = adir
-					break;
-			
-		log(LOGLEVEL_WARNING, indent + sdir.relpath.ljust(WIDTH) + "----->", COLOR_PINK)
-		syncDir(srcOps, sdir, dstOps, ddir, srcutime)	
+    # Remove obsolete subdirs
+    for ddir in dstNode.subdirs:
+        if not ddir in srcNode.subdirs:
+            if not ddir.ignored:
+                log(LOGLEVEL_WARNING, indent +
+                    ddir.relpath.ljust(WIDTH) + "Removing dir", COLOR_RED)
+                rmdir(dstOps, ddir)
+            else:
+                num_protected = num_protected + 1
+                log(LOGLEVEL_WARNING, indent + ddir.relpath.ljust(WIDTH) +
+                    "Protecting obsolete dir", COLOR_YELLOW)
+
+    # Create new subdirs
+    for sdir in srcNode.subdirs:
+        if sdir.ignored:
+            num_ignored = num_ignored + 1
+            log(LOGLEVEL_DETAILED, indent + sdir.relpath.ljust(WIDTH) +
+                "Ignoring source dir", COLOR_BLUE)
+            continue
+
+        ddir = None
+        if not sdir in dstNode.subdirs:
+            # Dir is not present in dest tree, create and sync
+            log(LOGLEVEL_WARNING, indent + sdir.relpath.ljust(WIDTH) +
+                "Creating missing subdir", COLOR_GREEN)
+            ddir = dstNode.addSubdir(sdir.name)
+            mkdir(dstOps, ddir)
+        else:
+            # Even if its present, we still gotta sync it
+            log(LOGLEVEL_DETAILED, indent + sdir.relpath.ljust(WIDTH) +
+                "Already exists, no need to create", COLOR_BLUE)
+            for adir in dstNode.subdirs:
+                if (sdir == adir):
+                    ddir = adir
+                    break
+
+        log(LOGLEVEL_WARNING, indent +
+            sdir.relpath.ljust(WIDTH) + "----->", COLOR_PINK)
+        syncDir(srcOps, sdir, dstOps, ddir, srcutime)
+
 
 def sync(srcOps, srcNode, srcMask, dstOps, dstNode, dstMask, srcutime):
-	flagIgnored(srcNode, srcMask, False)
-	flagIgnored(dstNode, dstMask, True)
-	syncDir(srcOps, srcNode, dstOps, dstNode, srcutime)
+    flagIgnored(srcNode, srcMask, False)
+    flagIgnored(dstNode, dstMask, True)
+    syncDir(srcOps, srcNode, dstOps, dstNode, srcutime)
+
 
 def ignoredFile(afile, mask):
-	for pattern in mask:
-		if pattern.search(afile.relpath):
-			return True			
-	return False
+    for pattern in mask:
+        if pattern.search(afile.relpath):
+            return True
+    return False
+
 
 def flagIgnored(node, mask, tagParent):
-	for sub in node.subdirs:
-		flagIgnored(sub, mask, tagParent)
+    for sub in node.subdirs:
+        flagIgnored(sub, mask, tagParent)
 
-	for afile in node.files:
-		if ignoredFile(afile, mask):
-			afile.ignored = True
+    for afile in node.files:
+        if ignoredFile(afile, mask):
+            afile.ignored = True
 
-			if not tagParent:
-				continue
-				
-			# Flag container dir and its parents as ignored
-			dir = afile.dir
-			while True:
-				dir.ignored = True
-				dir = dir.parent
-				if dir is None:
-					break		
+            if not tagParent:
+                continue
+
+            # Flag container dir and its parents as ignored
+            dir = afile.dir
+            while True:
+                dir.ignored = True
+                dir = dir.parent
+                if dir is None:
+                    break
+
 
 def main():
-	global loglevel
-	global dryrun
-	global colors
-	
-	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'dvc')
-	except getopt.error, msg:
-		usage(msg)
+    global loglevel
+    global dryrun
+    global colors
 
-	for o, a in opts:
-		if o == '-d': dryrun = True
-		if o == '-v': loglevel = loglevel + 1
-		if o == '-c': colors = True
-		
-	if not args: 
-		usage('error: no config specified')
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'dvc')
+    except getopt.error, msg:
+        usage(msg)
 
-	try:
-		profile = Profile(args)
-	except IOError:
-		print 'error: invalid config ' + str(args)
-		sys.exit(3)
+    for o, a in opts:
+        if o == '-d':
+            dryrun = True
+        if o == '-v':
+            loglevel = loglevel + 1
+        if o == '-c':
+            colors = True
 
-	print profile
+    if not args:
+        usage('error: no config specified')
 
-	if dryrun:
-		print "**************************************************************************"
-		print "*** Running in dryrun mode. No changes will be made to the destination ***"
-		print "**************************************************************************"
+    try:
+        profile = Profile(args)
+    except IOError:
+        print 'error: invalid config ' + str(args)
+        sys.exit(3)
 
-	srcOps = ops.DiskOps()
-	dstOps = ops.FTPOps(profile.config['host'], profile.config['port'], profile.config['user'], profile.config['pass'])
+    print profile
 
-	srcRoot = srcOps.list(profile.config['source'])
-	dstRoot = dstOps.list(profile.config['dest'])
+    if dryrun:
+        print "**************************************************************************"
+        print "*** Running in dryrun mode. No changes will be made to the destination ***"
+        print "**************************************************************************"
 
-	if (srcRoot is None):
-		print "error: source directory '" + profile.config['source'] + "' does not exist."
-		sys.exit(4)
+    srcOps = ops.DiskOps()
+    dstOps = ops.FTPOps(profile.config['host'], profile.config['port'],
+                        profile.config['user'], profile.config['pass'])
 
-	if (dstRoot is None):
-		print "error: destination directory '" + profile.config['dest'] + "' does not exist."
-		sys.exit(4)
+    srcRoot = srcOps.list(profile.config['source'])
+    dstRoot = dstOps.list(profile.config['dest'])
 
-	sync(srcOps, srcRoot, profile.srcmask, dstOps, dstRoot, profile.dstmask, profile.config['srcutime'])
+    if (srcRoot is None):
+        print "error: source directory '" + profile.config['source'] + "' does not exist."
+        sys.exit(4)
 
-	log(LOGLEVEL_FATAL, "Synchronization complete. Destination statistics:")
-	log(LOGLEVEL_FATAL, "  " + str(num_putfile) + " files created", COLOR_GREEN)
-	log(LOGLEVEL_FATAL, "  " + str(num_mkdir) + " directories created", COLOR_GREEN)
-	log(LOGLEVEL_FATAL, "  " + str(num_rmfile) + " files removed", COLOR_RED)
-	log(LOGLEVEL_FATAL, "  " + str(num_rmdir) + " directories removed", COLOR_RED)
-	log(LOGLEVEL_FATAL, "  " + str(num_protected) + " entries protected", COLOR_YELLOW)
-	log(LOGLEVEL_FATAL, "  " + str(num_ignored) + " local entries ignored", COLOR_BLUE)
-	
+    if (dstRoot is None):
+        print "error: destination directory '" + profile.config['dest'] + "' does not exist."
+        sys.exit(4)
+
+    sync(srcOps, srcRoot, profile.srcmask, dstOps, dstRoot,
+         profile.dstmask, profile.config['srcutime'])
+
+    log(LOGLEVEL_FATAL, "Synchronization complete. Destination statistics:")
+    log(LOGLEVEL_FATAL, "  " + str(num_putfile) + " files created", COLOR_GREEN)
+    log(LOGLEVEL_FATAL, "  " + str(num_mkdir) +
+        " directories created", COLOR_GREEN)
+    log(LOGLEVEL_FATAL, "  " + str(num_rmfile) + " files removed", COLOR_RED)
+    log(LOGLEVEL_FATAL, "  " + str(num_rmdir) + " directories removed", COLOR_RED)
+    log(LOGLEVEL_FATAL, "  " + str(num_protected) +
+        " entries protected", COLOR_YELLOW)
+    log(LOGLEVEL_FATAL, "  " + str(num_ignored) +
+        " local entries ignored", COLOR_BLUE)
+
+
 def usage(*args):
-	sys.stdout = sys.stderr
-	print __doc__
-	for msg in args: print msg
-	sys.exit(2)
+    sys.stdout = sys.stderr
+    print __doc__
+    for msg in args:
+        print msg
+    sys.exit(2)
+
 
 if __name__ == "__main__":
-	main()
+    main()
