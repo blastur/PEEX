@@ -135,8 +135,7 @@ class FTPOps(TreeOps):
         # self.ftp.voidcmd("MFMT " + str(int(time)) + " " + path)
         timestr = time.strftime("%Y%m%d%H%M%S", time.gmtime(epoch))
         # UTIME is broken on pre 1.0.27 PureFTPD, it sets localtime when given UTC
-        self.ftp.voidcmd("SITE UTIME " + path + " " + timestr +
-                         " " + timestr + " " + timestr + " UTC")
+        self.ftp.voidcmd("SITE UTIME " + timestr + " " + path)
 
     def modtime(self, path):
         timestr = self.mdtm(path)
