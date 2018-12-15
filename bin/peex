@@ -16,8 +16,7 @@ import os
 import re
 import time
 
-import tree
-import ops
+from peex import tree, ops
 
 # When enabled, do not modify destination tree
 dryrun = False
